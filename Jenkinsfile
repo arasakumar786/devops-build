@@ -5,6 +5,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('DockerHub')
         IMAGE_NAME_DEV  = "arasakumar786/dev"
         IMAGE_NAME_PROD = "arasakumar786/prod"
+        DEV_SERVER_IP = "65.2.137.121"
     }
 
     stages {
@@ -15,13 +16,16 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Image') {
             steps {
-                sh './build.sh'
+                sh '''
+                    chmod +x build.sh
+                    ./build.sh
+                '''
             }
         }
 
-        stage('Login to Docker Hub') {
+        stage('Docker Login') {
             steps {
                 sh '''
                     echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
@@ -29,7 +33,7 @@ pipeline {
             }
         }
 
-        stage('Tag & Push (Dev)') {
+        stage('Push Dev Image') {
             when {
                 expression {
                     return env.GIT_BRANCH == 'origin/dev' || env.GIT_BRANCH == 'dev'
@@ -43,7 +47,31 @@ pipeline {
             }
         }
 
-        stage('Tag & Push (Prod)') {
+        stage('Deploy to Dev') {
+            when {
+                expression {
+                    return env.GIT_BRANCH == 'origin/dev' || env.GIT_BRANCH == 'dev'
+                }
+            }
+            steps {
+                sshagent(['ssh-server']) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=no ubuntu@${DEV_SERVER_IP} "mkdir -p ~/app"
+
+                        scp -o StrictHostKeyChecking=no deploy.sh compose.yml ubuntu@${DEV_SERVER_IP}:~/app/
+
+                        ssh -o StrictHostKeyChecking=no ubuntu@${DEV_SERVER_IP} "
+                            cd ~/app &&
+                            chmod +x deploy.sh &&
+                            ./deploy.sh dev
+                        "
+                    '''
+                }
+            }
+        }
+
+        
+        stage('Push Prod Image') {
             when {
                 expression {
                     return env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main'
@@ -110,33 +138,53 @@ pipeline {
 
     post {
         success {
-            slackSend(
-                channel: '#all-arasan',
-                color: 'good',
-                message: """
-✅ Build Successful
+    slackSend(
+        channel: '#all-arasan',
+        color: 'good',
+        message: """
+🚀 *Deployment Successful*
 
-Job     : ${env.JOB_NAME}
-Build   : #${env.BUILD_NUMBER}
-Branch  : ${env.GIT_BRANCH}
-URL     : ${env.BUILD_URL}
-"""
-            )
-        }
-        failure {
-            slackSend(
-                channel: '#all-arasan',
-                color: 'danger',
-                message: """
-❌ Build Failed
+📦 Project   : ${env.JOB_NAME}
+🔢 Build No  : #${env.BUILD_NUMBER}
+🌿 Branch    : ${env.GIT_BRANCH}
+👤 Triggered : ${env.BUILD_USER ?: 'Git Push'}
 
-Job     : ${env.JOB_NAME}
-Build   : #${env.BUILD_NUMBER}
-Branch  : ${env.GIT_BRANCH}
-URL     : ${env.BUILD_URL}
+🐳 Docker Image:
+- Dev  : ${IMAGE_NAME_DEV}:latest
+- Prod : ${IMAGE_NAME_PROD}:latest
+
+🌐 Server:
+- Dev IP : ${DEV_SERVER_IP}
+
+🔗 Jenkins: ${env.BUILD_URL}
 """
-            )
-        }
-    }
+    )
 }
 
+        failure {
+    slackSend(
+        channel: '#all-arasan',
+        color: 'danger',
+        message: """
+❌ *Deployment Failed*
+
+📦 Project   : ${env.JOB_NAME}
+🔢 Build No  : #${env.BUILD_NUMBER}
+🌿 Branch    : ${env.GIT_BRANCH}
+
+⚠️ Check logs:
+👉 ${env.BUILD_URL}console
+
+🐳 Possible Issues:
+- Docker build failed
+- Image push failed
+- SSH connection issue
+- Deploy script error
+
+🛠️ Quick Action:
+Re-run build or check Jenkins console output
+"""
+    )
+}
+    }
+}

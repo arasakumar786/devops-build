@@ -2,9 +2,9 @@
 
 set -e
 
-echo "Deploying PROD application..."
+echo "Deploying the application..."
 
-docker pull arasakumar786/prod:latest
+docker pull arasakumar786/dev:latest
 
 docker compose down || true
 docker compose up -d
