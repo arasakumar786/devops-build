@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB_CREDENTIALS = credentials('DockerHub')
-        IMAGE_NAME_DEV = "arasakumar786/dev"
+        IMAGE_NAME_DEV  = "arasakumar786/dev"
         IMAGE_NAME_PROD = "arasakumar786/prod"
     }
 
@@ -24,61 +24,57 @@ pipeline {
         stage('Login to Docker Hub') {
             steps {
                 sh '''
-                echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
+                    echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin
                 '''
             }
         }
 
         stage('Tag & Push (Dev)') {
             when {
-                anyOf {
-                    branch 'dev'
-                    expression { env.BRANCH_NAME == 'dev' }
+                expression {
+                    return env.GIT_BRANCH == 'origin/dev' || env.GIT_BRANCH == 'dev'
                 }
             }
             steps {
                 sh '''
-                docker tag nginx-app:latest $IMAGE_NAME_DEV:latest
-                docker push $IMAGE_NAME_DEV:latest
+                    docker tag nginx-app:latest $IMAGE_NAME_DEV:latest
+                    docker push $IMAGE_NAME_DEV:latest
                 '''
             }
         }
 
         stage('Tag & Push (Prod)') {
             when {
-                anyOf {
-                    branch 'main'
-                    expression { env.BRANCH_NAME == 'main' }
+                expression {
+                    return env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main'
                 }
             }
             steps {
                 sh '''
-                docker tag nginx-app:latest $IMAGE_NAME_PROD:latest
-                docker push $IMAGE_NAME_PROD:latest
+                    docker tag nginx-app:latest $IMAGE_NAME_PROD:latest
+                    docker push $IMAGE_NAME_PROD:latest
                 '''
             }
         }
 
         stage('Get Prod Server IP') {
             when {
-                anyOf {
-                    branch 'main'
-                    expression { env.BRANCH_NAME == 'main' }
+                expression {
+                    return env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main'
                 }
             }
             steps {
                 script {
                     env.SERVER_IP = sh(
                         script: '''
-                        aws ec2 describe-instances \
-                        --filters "Name=tag:Environment,Values=prod" \
-                        "Name=instance-state-name,Values=running" \
-                        --query "Reservations[*].Instances[*].PublicIpAddress" \
-                        --output text
+                            aws ec2 describe-instances \
+                            --filters "Name=tag:Environment,Values=prod" \
+                                      "Name=instance-state-name,Values=running" \
+                            --query "Reservations[*].Instances[*].PublicIpAddress" \
+                            --output text
                         ''',
                         returnStdout: true
                     ).trim()
-
                     echo "Server IP: ${env.SERVER_IP}"
                 }
             }
@@ -86,26 +82,24 @@ pipeline {
 
         stage('Deploy to Prod') {
             when {
-                anyOf {
-                    branch 'main'
-                    expression { env.BRANCH_NAME == 'main' }
+                expression {
+                    return env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main'
                 }
             }
             steps {
                 sshagent(['ssh-server']) {
                     sh """
-                    ssh -o StrictHostKeyChecking=no ubuntu@${env.SERVER_IP} \
-                    'mkdir -p ~/tmp'
+                        ssh -o StrictHostKeyChecking=no ubuntu@${env.SERVER_IP} 'mkdir -p ~/tmp'
 
-                    scp -o StrictHostKeyChecking=no \
-                    deploy.sh docker-compose.yml \
-                    ubuntu@${env.SERVER_IP}:~/tmp/
+                        scp -o StrictHostKeyChecking=no \
+                            deploy.sh docker-compose.yml \
+                            ubuntu@${env.SERVER_IP}:~/tmp/
 
-                    ssh -o StrictHostKeyChecking=no ubuntu@${env.SERVER_IP} '
-                    cd ~/tmp
-                    chmod +x deploy.sh
-                    ./deploy.sh
-                    '
+                        ssh -o StrictHostKeyChecking=no ubuntu@${env.SERVER_IP} '
+                            cd ~/tmp
+                            chmod +x deploy.sh
+                            ./deploy.sh
+                        '
                     """
                 }
             }
@@ -120,14 +114,13 @@ pipeline {
                 message: """
 ✅ Build Successful
 
-Job: ${env.JOB_NAME}
-Build: #${env.BUILD_NUMBER}
-Branch: ${env.BRANCH_NAME}
-URL: ${env.BUILD_URL}
+Job     : ${env.JOB_NAME}
+Build   : #${env.BUILD_NUMBER}
+Branch  : ${env.GIT_BRANCH}
+URL     : ${env.BUILD_URL}
 """
             )
         }
-
         failure {
             slackSend(
                 channel: '#all-arasan',
@@ -135,10 +128,10 @@ URL: ${env.BUILD_URL}
                 message: """
 ❌ Build Failed
 
-Job: ${env.JOB_NAME}
-Build: #${env.BUILD_NUMBER}
-Branch: ${env.BRANCH_NAME}
-URL: ${env.BUILD_URL}
+Job     : ${env.JOB_NAME}
+Build   : #${env.BUILD_NUMBER}
+Branch  : ${env.GIT_BRANCH}
+URL     : ${env.BUILD_URL}
 """
             )
         }
