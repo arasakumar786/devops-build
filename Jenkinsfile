@@ -31,7 +31,10 @@ pipeline {
 
         stage('Tag & Push (Dev)') {
             when {
-                branch 'dev'
+                anyOf {
+                    branch 'dev'
+                    expression { env.BRANCH_NAME == 'dev' }
+                }
             }
             steps {
                 sh '''
@@ -43,7 +46,10 @@ pipeline {
 
         stage('Tag & Push (Prod)') {
             when {
-                branch 'master'
+                anyOf {
+                    branch 'main'
+                    expression { env.BRANCH_NAME == 'main' }
+                }
             }
             steps {
                 sh '''
@@ -55,7 +61,10 @@ pipeline {
 
         stage('Get Prod Server IP') {
             when {
-                branch 'master'
+                anyOf {
+                    branch 'main'
+                    expression { env.BRANCH_NAME == 'main' }
+                }
             }
             steps {
                 script {
@@ -77,7 +86,10 @@ pipeline {
 
         stage('Deploy to Prod') {
             when {
-                branch 'master'
+                anyOf {
+                    branch 'main'
+                    expression { env.BRANCH_NAME == 'main' }
+                }
             }
             steps {
                 sshagent(['ssh-server']) {
@@ -132,4 +144,3 @@ URL: ${env.BUILD_URL}
         }
     }
 }
-
