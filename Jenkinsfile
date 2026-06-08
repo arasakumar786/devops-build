@@ -64,6 +64,7 @@ pipeline {
                 }
             }
             steps {
+		withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS KEY']]) {
                 script {
                     env.SERVER_IP = sh(
                         script: '''
@@ -79,6 +80,7 @@ pipeline {
                 }
             }
         }
+       }
 
         stage('Deploy to Prod') {
             when {
