@@ -58,7 +58,7 @@ pipeline {
                     sh '''
                         ssh -o StrictHostKeyChecking=no ubuntu@${DEV_SERVER_IP} "mkdir -p ~/app"
 
-                        scp -o StrictHostKeyChecking=no deploy.sh docker-compose.yml ubuntu@${DEV_SERVER_IP}:~/app/
+                        scp -o StrictHostKeyChecking=no deploy.sh compose.yml ubuntu@${DEV_SERVER_IP}:~/app/
 
                         ssh -o StrictHostKeyChecking=no ubuntu@${DEV_SERVER_IP} "
                             cd ~/app &&
