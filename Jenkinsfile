@@ -88,19 +88,53 @@ pipeline {
 
     post {
         success {
-            slackSend(
-                channel: '#all-arasan',
-                color: 'good',
-                message: "✅ Build Success - ${env.GIT_BRANCH} - #${env.BUILD_NUMBER}"
-            )
-        }
+    slackSend(
+        channel: '#all-arasan',
+        color: 'good',
+        message: """
+🚀 *Deployment Successful*
+
+📦 Project   : ${env.JOB_NAME}
+🔢 Build No  : #${env.BUILD_NUMBER}
+🌿 Branch    : ${env.GIT_BRANCH}
+👤 Triggered : ${env.BUILD_USER ?: 'Git Push'}
+
+🐳 Docker Image:
+- Dev  : ${IMAGE_NAME_DEV}:latest
+- Prod : ${IMAGE_NAME_PROD}:latest
+
+🌐 Server:
+- Dev IP : ${DEV_SERVER_IP}
+
+🔗 Jenkins: ${env.BUILD_URL}
+"""
+    )
+}
 
         failure {
-            slackSend(
-                channel: '#all-arasan',
-                color: 'danger',
-                message: "❌ Build Failed - ${env.GIT_BRANCH} - #${env.BUILD_NUMBER}"
-            )
-        }
+    slackSend(
+        channel: '#all-arasan',
+        color: 'danger',
+        message: """
+❌ *Deployment Failed*
+
+📦 Project   : ${env.JOB_NAME}
+🔢 Build No  : #${env.BUILD_NUMBER}
+🌿 Branch    : ${env.GIT_BRANCH}
+
+⚠️ Check logs:
+👉 ${env.BUILD_URL}console
+
+🐳 Possible Issues:
+- Docker build failed
+- Image push failed
+- SSH connection issue
+- Deploy script error
+
+🛠️ Quick Action:
+Re-run build or check Jenkins console output
+"""
+    )
+}
     }
 }
