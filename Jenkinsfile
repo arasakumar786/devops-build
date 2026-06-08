@@ -33,8 +33,13 @@ pipeline {
             }
         }
 
+        /* ---------------- DEV ---------------- */
         stage('Push Dev Image') {
-            when { branch 'dev' }
+            when {
+                expression {
+                    return env.GIT_BRANCH == 'origin/dev' || env.GIT_BRANCH == 'dev'
+                }
+            }
             steps {
                 sh '''
                     docker tag nginx-app:latest $IMAGE_NAME_DEV:latest
@@ -44,7 +49,11 @@ pipeline {
         }
 
         stage('Deploy to Dev') {
-            when { branch 'dev' }
+            when {
+                expression {
+                    return env.GIT_BRANCH == 'origin/dev' || env.GIT_BRANCH == 'dev'
+                }
+            }
             steps {
                 sshagent(['ssh-server']) {
                     sh '''
@@ -62,8 +71,13 @@ pipeline {
             }
         }
 
+        /* ---------------- PROD ---------------- */
         stage('Push Prod Image') {
-            when { branch 'main' }
+            when {
+                expression {
+                    return env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main'
+                }
+            }
             steps {
                 sh '''
                     docker tag nginx-app:latest $IMAGE_NAME_PROD:latest
@@ -78,7 +92,7 @@ pipeline {
             slackSend(
                 channel: '#all-arasan',
                 color: 'good',
-                message: "✅ Build Success - ${env.BRANCH_NAME} - #${env.BUILD_NUMBER}"
+                message: "✅ Build Success - ${env.GIT_BRANCH} - #${env.BUILD_NUMBER}"
             )
         }
 
@@ -86,7 +100,7 @@ pipeline {
             slackSend(
                 channel: '#all-arasan',
                 color: 'danger',
-                message: "❌ Build Failed - ${env.BRANCH_NAME} - #${env.BUILD_NUMBER}"
+                message: "❌ Build Failed - ${env.GIT_BRANCH} - #${env.BUILD_NUMBER}"
             )
         }
     }
