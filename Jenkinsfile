@@ -53,12 +53,49 @@ pipeline {
             }
         }
 
+        stage('Get Prod Server IP') {
+            when {
+                branch 'master'
+            }
+            steps {
+                script {
+                    env.SERVER_IP = sh(
+                        script: '''
+                        aws ec2 describe-instances \
+                        --filters "Name=tag:Environment,Values=prod" \
+                        "Name=instance-state-name,Values=running" \
+                        --query "Reservations[*].Instances[*].PublicIpAddress" \
+                        --output text
+                        ''',
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Server IP: ${env.SERVER_IP}"
+                }
+            }
+        }
+
         stage('Deploy to Prod') {
             when {
                 branch 'master'
             }
             steps {
-                sh './deploy.sh'
+                sshagent(['ssh-server']) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no ubuntu@${env.SERVER_IP} \
+                    'mkdir -p ~/tmp'
+
+                    scp -o StrictHostKeyChecking=no \
+                    deploy.sh docker-compose.yml \
+                    ubuntu@${env.SERVER_IP}:~/tmp/
+
+                    ssh -o StrictHostKeyChecking=no ubuntu@${env.SERVER_IP} '
+                    cd ~/tmp
+                    chmod +x deploy.sh
+                    ./deploy.sh
+                    '
+                    """
+                }
             }
         }
     }
