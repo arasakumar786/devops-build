@@ -33,7 +33,6 @@ pipeline {
             }
         }
 
-        /* ---------------- DEV ---------------- */
         stage('Push Dev Image') {
             when {
                 expression {
@@ -71,7 +70,7 @@ pipeline {
             }
         }
 
-        /* ---------------- PROD ---------------- */
+        
         stage('Push Prod Image') {
             when {
                 expression {
