@@ -84,56 +84,6 @@ pipeline {
                 '''
             }
         }
-
-        stage('Get Prod Server IP') {
-            when {
-                expression {
-                    return env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main'
-                }
-            }
-            steps {
-		withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'AWS KEY']]) {
-                script {
-                    env.SERVER_IP = sh(
-                        script: '''
-                            aws ec2 describe-instances \
-                            --filters "Name=tag:Environment,Values=prod" \
-                                      "Name=instance-state-name,Values=running" \
-                            --query "Reservations[*].Instances[*].PublicIpAddress" \
-                            --output text
-                        ''',
-                        returnStdout: true
-                    ).trim()
-                    echo "Server IP: ${env.SERVER_IP}"
-                }
-            }
-        }
-       }
-
-        stage('Deploy to Prod') {
-            when {
-                expression {
-                    return env.GIT_BRANCH == 'origin/main' || env.GIT_BRANCH == 'main'
-                }
-            }
-            steps {
-                sshagent(['ssh-server']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no ubuntu@${env.SERVER_IP} 'mkdir -p ~/tmp'
-
-                        scp -o StrictHostKeyChecking=no \
-                            deploy.sh docker-compose.yml \
-                            ubuntu@${env.SERVER_IP}:~/tmp/
-
-                        ssh -o StrictHostKeyChecking=no ubuntu@${env.SERVER_IP} '
-                            cd ~/tmp
-                            chmod +x deploy.sh
-                            ./deploy.sh
-                        '
-                    """
-                }
-            }
-        }
     }
 
     post {
@@ -188,4 +138,3 @@ Re-run build or check Jenkins console output
 }
     }
 }
-
