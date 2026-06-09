@@ -5,7 +5,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS = credentials('DockerHub')
         IMAGE_NAME_DEV  = "arasakumar786/dev"
         IMAGE_NAME_PROD = "arasakumar786/prod"
-        DEV_SERVER_IP = "65.2.137.121"
+        DEV_SERVER_IP = "3.108.221.6"
     }
 
     stages {
