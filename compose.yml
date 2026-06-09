@@ -1,9 +1,0 @@
-version: "3"
-
-services:
-  web:
-    image: arasakumar786/dev:latest
-    container_name: web-app
-    ports:
-      - "3000:80"
-    restart: unless-stopped
