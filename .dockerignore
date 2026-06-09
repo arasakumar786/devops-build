@@ -1,0 +1,47 @@
+# ── Dependencies (reinstalled inside image via npm install) ───────────────────
+node_modules/
+
+# ── Environment & Secrets (injected at runtime, never baked into image) ───────
+.env
+.env.*
+*.pem
+*.key
+*.cert
+secrets/
+
+# ── Git metadata (not needed inside the container) ────────────────────────────
+.git/
+.gitignore
+
+# ── Logs & coverage ───────────────────────────────────────────────────────────
+logs/
+*.log
+coverage/
+
+# ── Build & dev tooling ───────────────────────────────────────────────────────
+dist/
+.next/
+
+# ── Docker files themselves ───────────────────────────────────────────────────
+# No need to copy these into the image
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# ── CI / CD configs ───────────────────────────────────────────────────────────
+Jenkinsfile
+.github/
+
+# ── Scripts that run on the server, not inside the container ─────────────────
+deploy.sh
+rollback.sh
+healthcheck_restart.sh
+fetch_secrets.sh
+
+# ── OS & editor junk ──────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+README.md
